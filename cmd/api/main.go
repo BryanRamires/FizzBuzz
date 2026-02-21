@@ -4,19 +4,14 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/go-chi/chi/v5"
+	"github.com/BryanRamires/FizzBuzz/internal/httpapi"
 )
 
 func main() {
-	r := chi.NewRouter()
-
-	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("ok"))
-	})
+	router := httpapi.NewRouter()
 
 	log.Println("listening on :8090")
-	if err := http.ListenAndServe(":8090", r); err != nil {
+	if err := http.ListenAndServe(":8090", router); err != nil {
 		log.Fatal(err)
 	}
 }
