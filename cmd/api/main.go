@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"log"
+	"log/slog"
 	"net/http"
+	"os"
 	"os/signal"
 	"syscall"
 
@@ -29,14 +31,16 @@ func run(ctx context.Context) error {
 		return err
 	}
 
-	srv, err := newServer(cfg)
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
+	srv, err := newServer(cfg, logger)
 	if err != nil {
 		return err
 	}
 
 	errCh := make(chan error, 1)
 	go func() {
-		log.Printf("listening on %s", cfg.Addr)
+		logger.Info("listening", "addr", cfg.Addr)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			errCh <- err
 			return
@@ -50,7 +54,7 @@ func run(ctx context.Context) error {
 		return err
 	}
 
-	log.Println("shutting down")
+	logger.Info("shutting down")
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
 	defer cancel()
 
@@ -58,11 +62,11 @@ func run(ctx context.Context) error {
 		return err
 	}
 
-	log.Println("stopped")
+	logger.Info("stopped")
 	return nil
 }
 
-func newServer(cfg config.Config) (*http.Server, error) {
+func newServer(cfg config.Config, logger *slog.Logger) (*http.Server, error) {
 	repo := memory.New()
 	svc, err := stats.NewService(repo)
 	if err != nil {
@@ -70,7 +74,7 @@ func newServer(cfg config.Config) (*http.Server, error) {
 	}
 
 	h := httpapi.NewHandler(cfg.MaxLimit, svc)
-	router := httpapi.NewRouter(h)
+	router := httpapi.NewRouter(logger, h)
 
 	return &http.Server{
 		Addr:              cfg.Addr,

@@ -2,6 +2,8 @@ package httpapi
 
 import (
 	"encoding/json"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -22,7 +24,7 @@ func TestFizzBuzz_OK(t *testing.T) {
 	h := NewHandler(100_000, svc)
 
 	rr := httptest.NewRecorder()
-	NewRouter(h).ServeHTTP(rr, req)
+	NewRouter(testLogger(), h).ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("status=%d want=%d", rr.Code, http.StatusOK)
 	}
@@ -63,7 +65,7 @@ func TestFizzBuzz_InvalidInputs(t *testing.T) {
 			rr := httptest.NewRecorder()
 			req := httptest.NewRequest("GET", tt.url, nil)
 
-			NewRouter(h).ServeHTTP(rr, req)
+			NewRouter(testLogger(), h).ServeHTTP(rr, req)
 
 			if rr.Code != http.StatusBadRequest {
 				t.Fatalf("status=%d want=400", rr.Code)
@@ -77,7 +79,7 @@ func TestStats_AfterFizzBuzz_ReturnsTop(t *testing.T) {
 	svc, _ := stats.NewService(repo)
 	h := NewHandler(100_000, svc)
 
-	srv := httptest.NewServer(NewRouter(h))
+	srv := httptest.NewServer(NewRouter(testLogger(), h))
 	defer srv.Close()
 
 	// hit twice
@@ -117,4 +119,8 @@ func TestStats_AfterFizzBuzz_ReturnsTop(t *testing.T) {
 	if got.Parameters.Str1 != "fizz" || got.Parameters.Str2 != "buzz" {
 		t.Fatalf("bad strings: %+v", got.Parameters)
 	}
+}
+
+func testLogger() *slog.Logger {
+	return slog.New(slog.NewJSONHandler(io.Discard, nil))
 }
