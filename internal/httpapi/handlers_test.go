@@ -59,3 +59,46 @@ func TestFizzBuzz_InvalidInputs(t *testing.T) {
 		})
 	}
 }
+
+func TestStats_AfterFizzBuzz_ReturnsTop(t *testing.T) {
+	srv := httptest.NewServer(NewRouter())
+	defer srv.Close()
+
+	// hit twice
+	_, _ = http.Get(srv.URL + "/fizzbuzz?int1=3&int2=5&limit=16&str1=fizz&str2=buzz")
+	_, _ = http.Get(srv.URL + "/fizzbuzz?int1=3&int2=5&limit=16&str1=fizz&str2=buzz")
+
+	resp, err := http.Get(srv.URL + "/stats")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status=%d want=%d", resp.StatusCode, http.StatusOK)
+	}
+
+	var got struct {
+		Parameters struct {
+			Int1  int    `json:"int1"`
+			Int2  int    `json:"int2"`
+			Limit int    `json:"limit"`
+			Str1  string `json:"str1"`
+			Str2  string `json:"str2"`
+		} `json:"parameters"`
+		Hits uint64 `json:"hits"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&got); err != nil {
+		t.Fatal(err)
+	}
+
+	if got.Hits != 2 {
+		t.Fatalf("hits=%d want=2", got.Hits)
+	}
+	if got.Parameters.Int1 != 3 || got.Parameters.Int2 != 5 || got.Parameters.Limit != 16 {
+		t.Fatalf("bad params: %+v", got.Parameters)
+	}
+	if got.Parameters.Str1 != "fizz" || got.Parameters.Str2 != "buzz" {
+		t.Fatalf("bad strings: %+v", got.Parameters)
+	}
+}

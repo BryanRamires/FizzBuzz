@@ -16,3 +16,6 @@ curl.exe -i 'http://localhost:8090/healthz'
 
 # FizzBuzz
 curl 'http://localhost:8090/fizzbuzz?int1=0&int2=5&limit=16&str1=fizz&str2=buzz'
+
+# Data
+Stats are stored in memory for simplicity. To prevent unbounded growth, the in-memory repository caps the number of distinct parameter combinations. For real production deployments or untrusted traffic, use Redis with TTL / eviction and add rate limiting.

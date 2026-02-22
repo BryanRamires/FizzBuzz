@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/BryanRamires/FizzBuzz/internal/fizzbuzz"
+	"github.com/BryanRamires/FizzBuzz/internal/stats"
 )
 
 type errorResponse struct {
@@ -17,10 +18,14 @@ const maxLimitDefault = 100_000
 
 type Handler struct {
 	MaxLimit int
+	Stats    *stats.Service
 }
 
-func NewHandler() Handler {
-	return Handler{MaxLimit: maxLimitDefault}
+func NewHandler(statsService *stats.Service) Handler {
+	return Handler{
+		MaxLimit: maxLimitDefault,
+		Stats:    statsService,
+	}
 }
 
 func (h Handler) FizzBuzz(w http.ResponseWriter, r *http.Request) {
@@ -53,8 +58,31 @@ func (h Handler) FizzBuzz(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if h.Stats != nil {
+		h.Stats.Record(stats.Key{
+			Int1:  int1,
+			Int2:  int2,
+			Limit: limit,
+			Str1:  str1,
+			Str2:  str2,
+		})
+	}
+
 	out := fizzbuzz.Generate(int1, int2, limit, str1, str2)
 	writeJSON(w, http.StatusOK, out)
+}
+
+func (h Handler) StatsTop(w http.ResponseWriter, r *http.Request) {
+	if h.Stats == nil {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	top, ok := h.Stats.MostFrequent()
+	if !ok {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	writeJSON(w, http.StatusOK, top)
 }
 
 func mustPositiveInt(s string) (int, error) {
