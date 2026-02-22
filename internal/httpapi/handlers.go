@@ -14,16 +14,14 @@ type errorResponse struct {
 	Error string `json:"error"`
 }
 
-const maxLimitDefault = 100_000
-
 type Handler struct {
 	MaxLimit int
 	Stats    *stats.Service
 }
 
-func NewHandler(statsService *stats.Service) Handler {
+func NewHandler(maxLimit int, statsService *stats.Service) Handler {
 	return Handler{
-		MaxLimit: maxLimitDefault,
+		MaxLimit: maxLimit,
 		Stats:    statsService,
 	}
 }

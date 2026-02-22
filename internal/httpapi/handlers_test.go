@@ -5,6 +5,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/BryanRamires/FizzBuzz/internal/stats"
+	"github.com/BryanRamires/FizzBuzz/internal/stats/memory"
 )
 
 func TestFizzBuzz_OK(t *testing.T) {
@@ -13,8 +16,13 @@ func TestFizzBuzz_OK(t *testing.T) {
 		"/fizzbuzz?int1=3&int2=5&limit=16&str1=fizz&str2=buzz",
 		nil,
 	)
+
+	repo := memory.New()
+	svc, _ := stats.NewService(repo)
+	h := NewHandler(100_000, svc)
+
 	rr := httptest.NewRecorder()
-	NewRouter().ServeHTTP(rr, req)
+	NewRouter(h).ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("status=%d want=%d", rr.Code, http.StatusOK)
 	}
@@ -48,10 +56,14 @@ func TestFizzBuzz_InvalidInputs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			repo := memory.New()
+			svc, _ := stats.NewService(repo)
+			h := NewHandler(100_000, svc)
+
 			rr := httptest.NewRecorder()
 			req := httptest.NewRequest("GET", tt.url, nil)
 
-			NewRouter().ServeHTTP(rr, req)
+			NewRouter(h).ServeHTTP(rr, req)
 
 			if rr.Code != http.StatusBadRequest {
 				t.Fatalf("status=%d want=400", rr.Code)
@@ -61,7 +73,11 @@ func TestFizzBuzz_InvalidInputs(t *testing.T) {
 }
 
 func TestStats_AfterFizzBuzz_ReturnsTop(t *testing.T) {
-	srv := httptest.NewServer(NewRouter())
+	repo := memory.New()
+	svc, _ := stats.NewService(repo)
+	h := NewHandler(100_000, svc)
+
+	srv := httptest.NewServer(NewRouter(h))
 	defer srv.Close()
 
 	// hit twice
