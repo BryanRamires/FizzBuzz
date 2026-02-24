@@ -6,19 +6,34 @@ This project demonstrates idiomatic Go practices, production-grade HTTP handling
 
 ---
 
-## Quick Start
+## Quick Start (Docker)
 
-### Run the server
+### Build the image
 
 ```bash
-make run
+docker build -t fizzbuzz-api .
 ```
 
-The server starts on:
+### Run the container
+
+```bash
+cp config.example.env .env
+docker run --env-file .env -p 8090:8090 fizzbuzz-api
+```
+
+The API will be available at:
 
 http://localhost:8090
 
 ---
+
+## Local Development (optional)
+
+Run the server locally without Docker (requires Go installed):
+
+```bash
+make run
+```
 
 ### Run tests
 
@@ -74,36 +89,11 @@ curl http://localhost:8090/stats
 
 Configuration is handled via environment variables.
 
-A sample file is provided:
+A sample configuration file is provided:
 
 ```bash
 cp config.example.env .env
 ```
-
-### Linux / macOS
-
-```bash
-set -a
-source .env
-set +a
-make run
-```
-
----
-
-### Windows (PowerShell)
-
-```powershell
-cp config.example.env .env
-Get-Content .env | ForEach-Object {
-    if ($_ -match "^\s*([^#=]+)\s*=\s*(.*)$") {
-        [System.Environment]::SetEnvironmentVariable($matches[1], $matches[2])
-    }
-}
-make run
-```
-
----
 
 ## Architecture
 
@@ -121,7 +111,7 @@ internal/config         → configuration loading
 ### Design Principles
 
 - Clear separation between transport and business logic
-- Minimal abstractions (interfaces only at boundaries) -> see internal/stats/repo.go
+- Minimal abstractions (interfaces only at boundaries, see internal/stats/repo.go)
 - Thread-safe in-memory storage
 - Production-ready HTTP server configuration
 - Structured logging using slog
@@ -169,18 +159,9 @@ For real production deployments:
 
 Possible future enhancements include:
 
-- Docker containerization for easier deployment and reproducible environments.
 - Redis-backed statistics repository (TTL/eviction).
-- Configurable rate limiting middleware.
 - OpenAPI specification for endpoint documentation.
 - Basic metrics endpoint (Prometheus).
-
----
-
-## Notes
-
-The Makefile commands are primarily designed for Windows (PowerShell / curl.exe).  
-Minor adjustments may be required for Linux or macOS environments.
 
 ---
 

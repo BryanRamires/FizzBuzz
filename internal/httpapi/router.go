@@ -3,20 +3,22 @@ package httpapi
 import (
 	"log/slog"
 	"net/http"
-	"time"
 
+	"github.com/BryanRamires/FizzBuzz/internal/config"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/httprate"
 )
 
-func NewRouter(logger *slog.Logger, h Handler) http.Handler {
+func NewRouter(cfg config.Config, logger *slog.Logger, h Handler) http.Handler {
 	r := chi.NewRouter()
 
-	// Middlewares “prod”
 	r.Use(middleware.RequestID)
+	// RealIP assumes requests come through a trusted proxy that sets X-Forwarded-For / X-Real-IP.
+	r.Use(middleware.RealIP)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
-	r.Use(middleware.Timeout(30 * time.Second))
+	r.Use(middleware.Timeout(cfg.HTTPHandlerTimeout))
 	r.Use(LoggingMiddleware(logger))
 
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -24,9 +26,11 @@ func NewRouter(logger *slog.Logger, h Handler) http.Handler {
 		w.Write([]byte("ok"))
 	})
 
-	r.Get("/fizzbuzz", h.FizzBuzz)
+	// In multi-instance production setups, rate limiting is typically enforced at the edge
+	// (API gateway / ingress / WAF). This in-app limiter provides basic protection per instance.
+	r.With(httprate.LimitByIP(cfg.RateLimitFizzBuzz, cfg.RateLimitWindow)).Get("/fizzbuzz", h.FizzBuzz)
 
-	r.Get("/stats", h.StatsTop)
+	r.With(httprate.LimitByIP(cfg.RateLimitStats, cfg.RateLimitWindow)).Get("/stats", h.StatsTop)
 
 	return r
 }

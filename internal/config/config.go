@@ -9,24 +9,34 @@ import (
 )
 
 type Config struct {
-	Addr              string
-	MaxLimit          int
-	ReadHeaderTimeout time.Duration
-	ReadTimeout       time.Duration
-	WriteTimeout      time.Duration
-	IdleTimeout       time.Duration
-	ShutdownTimeout   time.Duration
+	Addr               string
+	MaxLimit           int
+	ReadHeaderTimeout  time.Duration
+	ReadTimeout        time.Duration
+	WriteTimeout       time.Duration
+	IdleTimeout        time.Duration
+	ShutdownTimeout    time.Duration
+	HTTPHandlerTimeout time.Duration
+
+	RateLimitWindow   time.Duration
+	RateLimitFizzBuzz int
+	RateLimitStats    int
 }
 
 func New() (Config, error) {
 	cfg := Config{
-		Addr:              ":8090",
-		MaxLimit:          100_000,
-		ReadHeaderTimeout: 5 * time.Second,
-		ReadTimeout:       5 * time.Second,
-		WriteTimeout:      10 * time.Second,
-		IdleTimeout:       60 * time.Second,
-		ShutdownTimeout:   10 * time.Second,
+		Addr:               ":8090",
+		MaxLimit:           100_000,
+		ReadHeaderTimeout:  5 * time.Second,
+		ReadTimeout:        5 * time.Second,
+		WriteTimeout:       10 * time.Second,
+		IdleTimeout:        60 * time.Second,
+		ShutdownTimeout:    10 * time.Second,
+		HTTPHandlerTimeout: 30 * time.Second,
+
+		RateLimitWindow:   1 * time.Minute,
+		RateLimitFizzBuzz: 30,
+		RateLimitStats:    10,
 	}
 
 	var err error
@@ -76,6 +86,32 @@ func New() (Config, error) {
 	}
 	if cfg.ShutdownTimeout <= 0 {
 		return Config{}, fmt.Errorf("SHUTDOWN_TIMEOUT must be > 0")
+	}
+	if cfg.HTTPHandlerTimeout, err = getenvDuration("HTTP_HANDLER_TIMEOUT", cfg.HTTPHandlerTimeout); err != nil {
+		return Config{}, fmt.Errorf("HTTP_HANDLER_TIMEOUT: %w", err)
+	}
+	if cfg.HTTPHandlerTimeout <= 0 {
+		return Config{}, fmt.Errorf("HTTP_HANDLER_TIMEOUT must be > 0")
+	}
+	if cfg.RateLimitWindow, err = getenvDuration("RATE_LIMIT_WINDOW", cfg.RateLimitWindow); err != nil {
+		return Config{}, fmt.Errorf("RATE_LIMIT_WINDOW: %w", err)
+	}
+	if cfg.RateLimitWindow <= 0 {
+		return Config{}, fmt.Errorf("RATE_LIMIT_WINDOW must be > 0")
+	}
+
+	if cfg.RateLimitFizzBuzz, err = getenvInt("RATE_LIMIT_FIZZBUZZ", cfg.RateLimitFizzBuzz); err != nil {
+		return Config{}, fmt.Errorf("RATE_LIMIT_FIZZBUZZ: %w", err)
+	}
+	if cfg.RateLimitFizzBuzz <= 0 {
+		return Config{}, fmt.Errorf("RATE_LIMIT_FIZZBUZZ must be > 0")
+	}
+
+	if cfg.RateLimitStats, err = getenvInt("RATE_LIMIT_STATS", cfg.RateLimitStats); err != nil {
+		return Config{}, fmt.Errorf("RATE_LIMIT_STATS: %w", err)
+	}
+	if cfg.RateLimitStats <= 0 {
+		return Config{}, fmt.Errorf("RATE_LIMIT_STATS must be > 0")
 	}
 
 	return cfg, nil
