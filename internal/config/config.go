@@ -17,6 +17,7 @@ type Config struct {
 	IdleTimeout        time.Duration
 	ShutdownTimeout    time.Duration
 	HTTPHandlerTimeout time.Duration
+	MaxStrLen          int
 
 	RateLimitWindow   time.Duration
 	RateLimitFizzBuzz int
@@ -36,6 +37,7 @@ func New() (Config, error) {
 		IdleTimeout:        60 * time.Second,
 		ShutdownTimeout:    10 * time.Second,
 		HTTPHandlerTimeout: 30 * time.Second,
+		MaxStrLen:          50,
 
 		RateLimitWindow:   1 * time.Minute,
 		RateLimitFizzBuzz: 30,
@@ -100,6 +102,16 @@ func New() (Config, error) {
 	}
 	if cfg.HTTPHandlerTimeout <= 0 {
 		return Config{}, fmt.Errorf("HTTP_HANDLER_TIMEOUT must be > 0")
+	}
+	if cfg.MaxStrLen, err = getenvInt("MAX_STR_LEN", cfg.MaxStrLen); err != nil {
+		return Config{}, fmt.Errorf("MAX_STR_LEN: %w", err)
+	}
+	if cfg.MaxStrLen <= 0 {
+		return Config{}, fmt.Errorf("MAX_STR_LEN must be > 0")
+	}
+	// garde-fous “prod”
+	if cfg.MaxStrLen > 1000 {
+		return Config{}, fmt.Errorf("MAX_STR_LEN must be <= 1000")
 	}
 	if cfg.RateLimitWindow, err = getenvDuration("RATE_LIMIT_WINDOW", cfg.RateLimitWindow); err != nil {
 		return Config{}, fmt.Errorf("RATE_LIMIT_WINDOW: %w", err)

@@ -40,9 +40,15 @@ components:
         str1:
           type: string
           minLength: 1
+          maxLength: 50
+          description: Must not contain control characters.
+          pattern: '^[^\u0000-\u001F\u007F]+$'
         str2:
           type: string
           minLength: 1
+          maxLength: 50
+          description: Must not contain control characters.
+          pattern: '^[^\u0000-\u001F\u007F]+$'
       required: [int1, int2, limit, str1, str2]
       example:
         int1: 3
@@ -92,6 +98,12 @@ components:
             emptyStrings:
               summary: str1 or str2 empty
               value: { error: "str1 and str2 must be non-empty strings" }
+            controlChars:
+              summary: str1 or str2 contains control characters
+              value: { error: "str1 and str2 must not contain control characters" }
+            stringsTooLong:
+              summary: str1 or str2 too long
+              value: { error: "str1 and str2 are too long" }
 
 paths:
   /healthz:
@@ -139,14 +151,18 @@ paths:
           schema:
             type: string
             minLength: 1
-          description: Replacement for multiples of int1
+            maxLength: 50
+            pattern: '^[^\u0000-\u001F\u007F]+$'
+          description: Replacement for multiples of int1 (no control characters).
         - name: str2
           in: query
           required: true
           schema:
             type: string
             minLength: 1
-          description: Replacement for multiples of int2
+            maxLength: 50
+            pattern: '^[^\u0000-\u001F\u007F]+$'
+          description: Replacement for multiples of int2 (no control characters).
 
       responses:
         '200':

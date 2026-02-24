@@ -73,7 +73,7 @@ func newServer(cfg config.Config, logger *slog.Logger) (*http.Server, error) {
 		return nil, err
 	}
 
-	h := httpapi.NewHandler(cfg.MaxLimit, svc)
+	h := httpapi.NewHandler(cfg, svc)
 	router := httpapi.NewRouter(cfg, logger, h)
 
 	return &http.Server{

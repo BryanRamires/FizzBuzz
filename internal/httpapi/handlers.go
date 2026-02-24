@@ -5,7 +5,9 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"unicode"
 
+	"github.com/BryanRamires/FizzBuzz/internal/config"
 	"github.com/BryanRamires/FizzBuzz/internal/fizzbuzz"
 	"github.com/BryanRamires/FizzBuzz/internal/stats"
 )
@@ -15,14 +17,14 @@ type errorResponse struct {
 }
 
 type Handler struct {
-	MaxLimit int
-	Stats    *stats.Service
+	Cfg   config.Config
+	Stats *stats.Service
 }
 
-func NewHandler(maxLimit int, statsService *stats.Service) Handler {
+func NewHandler(cfg config.Config, statsService *stats.Service) Handler {
 	return Handler{
-		MaxLimit: maxLimit,
-		Stats:    statsService,
+		Cfg:   cfg,
+		Stats: statsService,
 	}
 }
 
@@ -44,7 +46,7 @@ func (h Handler) FizzBuzz(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "limit must be a positive integer")
 		return
 	}
-	if limit > h.MaxLimit {
+	if limit > h.Cfg.MaxLimit {
 		writeError(w, http.StatusBadRequest, "limit is too large")
 		return
 	}
@@ -53,6 +55,16 @@ func (h Handler) FizzBuzz(w http.ResponseWriter, r *http.Request) {
 	str2 := q.Get("str2")
 	if str1 == "" || str2 == "" {
 		writeError(w, http.StatusBadRequest, "str1 and str2 must be non-empty strings")
+		return
+	}
+
+	if hasControlChars(str1) || hasControlChars(str2) {
+		writeError(w, http.StatusBadRequest, "str1 and str2 must not contain control characters")
+		return
+	}
+
+	if len(str1) > h.Cfg.MaxStrLen || len(str2) > h.Cfg.MaxStrLen {
+		writeError(w, http.StatusBadRequest, "str1 and str2 are too long")
 		return
 	}
 
@@ -81,6 +93,15 @@ func (h Handler) StatsTop(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, top)
+}
+
+func hasControlChars(s string) bool {
+	for _, r := range s {
+		if unicode.IsControl(r) {
+			return true
+		}
+	}
+	return false
 }
 
 func mustPositiveInt(s string) (int, error) {

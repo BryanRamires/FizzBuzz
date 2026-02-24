@@ -23,7 +23,7 @@ func TestFizzBuzz_OK(t *testing.T) {
 	cfg, _ := config.New()
 	repo := memory.New()
 	svc, _ := stats.NewService(repo)
-	h := NewHandler(100_000, svc)
+	h := NewHandler(cfg, svc)
 
 	rr := httptest.NewRecorder()
 	NewRouter(cfg, testLogger(), h).ServeHTTP(rr, req)
@@ -63,7 +63,7 @@ func TestFizzBuzz_InvalidInputs(t *testing.T) {
 			cfg, _ := config.New()
 			repo := memory.New()
 			svc, _ := stats.NewService(repo)
-			h := NewHandler(100_000, svc)
+			h := NewHandler(cfg, svc)
 
 			rr := httptest.NewRecorder()
 			req := httptest.NewRequest("GET", tt.url, nil)
@@ -81,7 +81,7 @@ func TestStats_AfterFizzBuzz_ReturnsTop(t *testing.T) {
 	cfg, _ := config.New()
 	repo := memory.New()
 	svc, _ := stats.NewService(repo)
-	h := NewHandler(100_000, svc)
+	h := NewHandler(cfg, svc)
 
 	srv := httptest.NewServer(NewRouter(cfg, testLogger(), h))
 	defer srv.Close()
