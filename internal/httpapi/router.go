@@ -7,15 +7,25 @@ import (
 	"github.com/BryanRamires/FizzBuzz/internal/config"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"github.com/go-chi/httprate"
 )
 
 func NewRouter(cfg config.Config, logger *slog.Logger, h Handler) http.Handler {
 	r := chi.NewRouter()
 
+	if cfg.CORSEnabled {
+		r.Use(cors.Handler(cors.Options{
+			AllowedOrigins: cfg.CORSAllowedOrigins,
+			AllowedMethods: []string{"GET", "OPTIONS"},
+			AllowedHeaders: []string{"Accept", "Content-Type", "X-Request-Id"},
+			ExposedHeaders: []string{"X-Request-Id"},
+			MaxAge:         300,
+		}))
+	}
+
 	r.Use(middleware.RequestID)
 	// RealIP assumes requests come through a trusted proxy that sets X-Forwarded-For / X-Real-IP.
-	r.Use(middleware.RealIP)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(cfg.HTTPHandlerTimeout))

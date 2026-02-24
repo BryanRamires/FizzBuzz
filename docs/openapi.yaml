@@ -1,0 +1,174 @@
+openapi: 3.0.3
+
+info:
+  title: FizzBuzz API
+  description: Production-ready FizzBuzz REST API with configurable rules and request statistics.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8090
+
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+      example:
+        error: "limit is too large"
+
+    FizzBuzzResponse:
+      type: array
+      items:
+        type: string
+      example: ["1", "2", "fizz", "4", "buzz"]
+
+    FizzBuzzParameters:
+      type: object
+      properties:
+        int1:
+          type: integer
+          minimum: 1
+        int2:
+          type: integer
+          minimum: 1
+        limit:
+          type: integer
+          minimum: 1
+        str1:
+          type: string
+          minLength: 1
+        str2:
+          type: string
+          minLength: 1
+      required: [int1, int2, limit, str1, str2]
+      example:
+        int1: 3
+        int2: 5
+        limit: 100
+        str1: fizz
+        str2: buzz
+
+    StatsResponse:
+      type: object
+      properties:
+        parameters:
+          $ref: '#/components/schemas/FizzBuzzParameters'
+        hits:
+          type: integer
+          minimum: 1
+      required: [parameters, hits]
+      example:
+        parameters:
+          int1: 3
+          int2: 5
+          limit: 100
+          str1: fizz
+          str2: buzz
+        hits: 42
+
+  responses:
+    BadRequest:
+      description: Invalid parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            invalidInt1:
+              summary: int1 invalid
+              value: { error: "int1 must be a positive integer" }
+            invalidInt2:
+              summary: int2 invalid
+              value: { error: "int2 must be a positive integer" }
+            invalidLimit:
+              summary: limit invalid
+              value: { error: "limit must be a positive integer" }
+            limitTooLarge:
+              summary: limit over MaxLimit
+              value: { error: "limit is too large" }
+            emptyStrings:
+              summary: str1 or str2 empty
+              value: { error: "str1 and str2 must be non-empty strings" }
+
+paths:
+  /healthz:
+    get:
+      summary: Health check
+      description: Returns the health status of the service.
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: ok
+
+  /fizzbuzz:
+    get:
+      summary: Generate a FizzBuzz sequence
+      description: Returns a list of strings representing the FizzBuzz sequence based on provided parameters.
+      parameters:
+        - name: int1
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: First divisor
+        - name: int2
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: Second divisor
+        - name: limit
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: Upper bound of the sequence
+        - name: str1
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+          description: Replacement for multiples of int1
+        - name: str2
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+          description: Replacement for multiples of int2
+
+      responses:
+        '200':
+          description: FizzBuzz sequence generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FizzBuzzResponse'
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /stats:
+    get:
+      summary: Get most frequent request
+      description: Returns the most used FizzBuzz request parameters and hit count.
+      responses:
+        '200':
+          description: Most frequent request statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatsResponse'
+        '204':
+          description: No statistics available (stats disabled or no requests recorded yet)

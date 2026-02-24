@@ -45,43 +45,32 @@ make test
 
 ## API Endpoints
 
-### Health Check
+Quick examples:
 
-Used for monitoring and readiness probes.
-
-```bash
+### Health check
 curl -i http://localhost:8090/healthz
-```
-
----
 
 ### FizzBuzz
-
-Generates a configurable FizzBuzz sequence.
-
-```bash
 curl "http://localhost:8090/fizzbuzz?int1=3&int2=5&limit=16&str1=fizz&str2=buzz"
-```
-
-Parameters:
-
-| Parameter | Description |
-|----------|-------------|
-| int1 | First divisor |
-| int2 | Second divisor |
-| limit | Maximum number |
-| str1 | Replacement for multiples of int1 |
-| str2 | Replacement for multiples of int2 |
-
----
 
 ### Statistics
-
-Returns the most frequent request parameters and hit count.
-
-```bash
 curl http://localhost:8090/stats
-```
+
+For full API details, see the OpenAPI specification in docs/openapi.yaml.
+
+## API Documentation (OpenAPI)
+
+The API contract is formally described using an OpenAPI specification.
+
+Location:
+
+docs/openapi.yaml
+
+You can visualize it using Swagger Editor:
+
+https://editor.swagger.io/
+
+Simply copy the file contents into the editor to explore the interactive documentation and test endpoints.
 
 ---
 
@@ -94,6 +83,15 @@ A sample configuration file is provided:
 ```bash
 cp config.example.env .env
 ```
+
+---
+
+### CORS (optional)
+
+If you want to use Swagger Editor "Try it out" function from the browser, enable CORS:
+
+CORS_ENABLED=true
+CORS_ALLOWED_ORIGINS=https://editor.swagger.io
 
 ## Architecture
 
@@ -159,9 +157,8 @@ For real production deployments:
 
 Possible future enhancements include:
 
-- Redis-backed statistics repository (TTL/eviction).
-- OpenAPI specification for endpoint documentation.
-- Basic metrics endpoint (Prometheus).
+- Redis-backed statistics repository (TTL/eviction)
+- Basic metrics endpoint (Prometheus)
 
 ---
 

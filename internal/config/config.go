@@ -21,6 +21,9 @@ type Config struct {
 	RateLimitWindow   time.Duration
 	RateLimitFizzBuzz int
 	RateLimitStats    int
+
+	CORSEnabled        bool
+	CORSAllowedOrigins []string
 }
 
 func New() (Config, error) {
@@ -37,6 +40,11 @@ func New() (Config, error) {
 		RateLimitWindow:   1 * time.Minute,
 		RateLimitFizzBuzz: 30,
 		RateLimitStats:    10,
+
+		CORSEnabled: false,
+		// Do not default to "*" to avoid unintentionally opening the API.
+		// CORS must always be explicitly configured.
+		CORSAllowedOrigins: []string{},
 	}
 
 	var err error
@@ -113,6 +121,17 @@ func New() (Config, error) {
 	if cfg.RateLimitStats <= 0 {
 		return Config{}, fmt.Errorf("RATE_LIMIT_STATS must be > 0")
 	}
+	if cfg.CORSEnabled, err = getenvBool("CORS_ENABLED", cfg.CORSEnabled); err != nil {
+		return Config{}, fmt.Errorf("CORS_ENABLED: %w", err)
+	}
+
+	origins := getenv("CORS_ALLOWED_ORIGINS", "")
+	if strings.TrimSpace(origins) != "" {
+		cfg.CORSAllowedOrigins = splitCSV(origins)
+	}
+	if cfg.CORSEnabled && len(cfg.CORSAllowedOrigins) == 0 {
+		return Config{}, fmt.Errorf("CORS_ALLOWED_ORIGINS must be set when CORS_ENABLED=true")
+	}
 
 	return cfg, nil
 }
@@ -154,4 +173,36 @@ func getenvDuration(k string, def time.Duration) (time.Duration, error) {
 		return 0, fmt.Errorf("invalid duration %q: %w", v, err)
 	}
 	return d, nil
+}
+
+func getenvBool(k string, def bool) (bool, error) {
+	v, ok := os.LookupEnv(k)
+	if !ok {
+		return def, nil
+	}
+	v = strings.TrimSpace(strings.ToLower(v))
+	if v == "" {
+		return false, fmt.Errorf("is set but empty")
+	}
+	switch v {
+	case "1", "true", "yes", "y", "on":
+		return true, nil
+	case "0", "false", "no", "n", "off":
+		return false, nil
+	default:
+		return false, fmt.Errorf("invalid bool %q (expected true/false)", v)
+	}
+}
+
+func splitCSV(s string) []string {
+	parts := strings.Split(s, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+		out = append(out, p)
+	}
+	return out
 }
