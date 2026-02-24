@@ -1,11 +1,3 @@
-# ===============================
-# Windows-only Makefile
-# ===============================
-
-ifneq ($(OS),Windows_NT)
-  $(error This Makefile is Windows-only. Linux/macOS are not supported.)
-endif
-
 .PHONY: tidy test build run exec clean
 
 APP_NAME := fizzbuzz-api
@@ -15,19 +7,14 @@ PKG      := ./...
 tidy:
 	go mod tidy
 
+build:
+	go build -o $(BIN_DIR)/$(APP_NAME) ./cmd/api
+
 test:
 	go test $(PKG)
-
-build:
-	@if not exist $(BIN_DIR) mkdir $(BIN_DIR)
-	go build -o $(BIN_DIR)\$(APP_NAME).exe ./cmd/api
 
 run:
 	go run ./cmd/api
 
 exec: build
-	@echo Starting binary...
-	@call $(BIN_DIR)\$(APP_NAME).exe
-
-clean:
-	@if exist $(BIN_DIR) rmdir /s /q $(BIN_DIR)
+	$(BIN_DIR)/$(APP_NAME)
