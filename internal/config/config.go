@@ -32,6 +32,7 @@ type Config struct {
 	RedisDB          int
 	RedisDialTimeout time.Duration
 	RedisOpTimeout   time.Duration
+	MaxHeaderBytes   int
 }
 
 func New() (Config, error) {
@@ -45,6 +46,7 @@ func New() (Config, error) {
 		ShutdownTimeout:    10 * time.Second,
 		HTTPHandlerTimeout: 30 * time.Second,
 		MaxStrLen:          50,
+		MaxHeaderBytes:     1048576,
 
 		RateLimitWindow:   1 * time.Minute,
 		RateLimitFizzBuzz: 30,
@@ -125,6 +127,15 @@ func New() (Config, error) {
 	// garde-fous “prod”
 	if cfg.MaxStrLen > 1000 {
 		return Config{}, fmt.Errorf("MAX_STR_LEN must be <= 1000")
+	}
+	if cfg.MaxHeaderBytes, err = getenvInt("MAX_HEADER_BYTES", cfg.MaxHeaderBytes); err != nil {
+		return Config{}, fmt.Errorf("MAX_HEADER_BYTES: %w", err)
+	}
+	if cfg.MaxHeaderBytes <= 0 {
+		return Config{}, fmt.Errorf("MAX_HEADER_BYTES must be > 0")
+	}
+	if cfg.MaxHeaderBytes > 10<<20 { // 10 MiB
+		return Config{}, fmt.Errorf("MAX_HEADER_BYTES must be <= 10485760")
 	}
 	if cfg.RateLimitWindow, err = getenvDuration("RATE_LIMIT_WINDOW", cfg.RateLimitWindow); err != nil {
 		return Config{}, fmt.Errorf("RATE_LIMIT_WINDOW: %w", err)

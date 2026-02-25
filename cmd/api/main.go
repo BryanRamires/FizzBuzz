@@ -110,5 +110,6 @@ func newServer(cfg config.Config, logger *slog.Logger) (*http.Server, error) {
 		ReadTimeout:       cfg.ReadTimeout,
 		WriteTimeout:      cfg.WriteTimeout,
 		IdleTimeout:       cfg.IdleTimeout,
+		MaxHeaderBytes:    cfg.MaxHeaderBytes,
 	}, nil
 }
