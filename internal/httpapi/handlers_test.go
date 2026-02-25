@@ -94,7 +94,11 @@ func TestStats_AfterFizzBuzz_ReturnsTop(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			t.Errorf("failed to close response body: %v", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status=%d want=%d", resp.StatusCode, http.StatusOK)

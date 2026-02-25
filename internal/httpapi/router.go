@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"io"
 	"log/slog"
 	"net/http"
 
@@ -32,8 +33,9 @@ func NewRouter(cfg config.Config, logger *slog.Logger, h Handler) http.Handler {
 	r.Use(LoggingMiddleware(logger))
 
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("ok"))
+		if _, err := io.WriteString(w, "ok"); err != nil {
+			http.Error(w, "write error", http.StatusInternalServerError)
+		}
 	})
 
 	// In multi-instance production setups, rate limiting is typically enforced at the edge
