@@ -23,17 +23,34 @@ func LoggingMiddleware(logger *slog.Logger) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
 
-			sw := &statusWriter{ResponseWriter: w, status: 200}
+			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 
-			next.ServeHTTP(sw, r)
+			next.ServeHTTP(ww, r)
 
-			logger.Info("http request",
+			path := r.URL.Path
+			reqID := middleware.GetReqID(r.Context())
+			durUs := time.Since(start).Microseconds()
+			status := ww.Status()
+
+			if (path == "/healthz" || path == "/readyz") && status == http.StatusOK {
+				return
+			}
+
+			attrs := []any{
 				"method", r.Method,
 				"url", r.URL.String(),
-				"status", sw.status,
-				"duration_us", time.Since(start).Microseconds(),
-				"request_id", middleware.GetReqID(r.Context()),
-			)
+				"status", status,
+				"bytes", ww.BytesWritten(),
+				"duration_us", durUs,
+				"request_id", reqID,
+			}
+
+			if path == "/healthz" || path == "/readyz" {
+				logger.Warn("healthcheck failed", attrs...)
+				return
+			}
+
+			logger.Info("http request", attrs...)
 		})
 	}
 }

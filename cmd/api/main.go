@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"flag"
 	"log"
 	"log/slog"
 	"net/http"
@@ -19,20 +20,27 @@ import (
 )
 
 func main() {
+	healthcheck := flag.Bool("healthcheck", false, "run healthcheck and exit")
+	flag.Parse()
+
+	cfg, err := config.New()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if *healthcheck {
+		os.Exit(runHealthcheck(cfg.Addr))
+	}
+
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	if err := run(ctx); err != nil {
+	if err := run(ctx, cfg); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func run(ctx context.Context) error {
-	cfg, err := config.New()
-	if err != nil {
-		return err
-	}
-
+func run(ctx context.Context, cfg config.Config) error {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 	srv, err := newServer(cfg, logger)

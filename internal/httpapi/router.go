@@ -33,9 +33,8 @@ func NewRouter(cfg config.Config, logger *slog.Logger, h Handler) http.Handler {
 	r.Use(LoggingMiddleware(logger))
 
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		if _, err := io.WriteString(w, "ok"); err != nil {
-			http.Error(w, "write error", http.StatusInternalServerError)
-		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = io.WriteString(w, "ok")
 	})
 
 	r.Get("/readyz", h.Readyz)

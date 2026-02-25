@@ -36,5 +36,8 @@ COPY --from=build /out/fizzbuzz-api /fizzbuzz-api
 # Document listening port
 EXPOSE 8090
 
+HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
+  CMD ["/fizzbuzz-api", "-healthcheck"]
+
 # Run as non-root (already default in this image)
 ENTRYPOINT ["/fizzbuzz-api"]
