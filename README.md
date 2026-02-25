@@ -6,24 +6,31 @@ This project demonstrates idiomatic Go practices, production-grade HTTP handling
 
 ---
 
-## Quick Start (Docker)
+## Quick Start (Docker Compose)
 
-### Build the image
+The easiest way to run the full stack (API + Redis) is using Docker Compose.
 
-```bash
-docker build -t fizzbuzz-api .
-```
-
-### Run the container
+### Start the stack
 
 ```bash
-cp config.example.env .env
-docker run --env-file .env -p 8090:8090 fizzbuzz-api
+docker compose up --build
 ```
 
 The API will be available at:
 
 http://localhost:8090
+
+By default:
+
+- The API runs on port **8090**
+- Redis is started automatically
+- The statistics backend can be switched via environment variables
+
+### Stop the stack
+
+```bash
+docker compose down
+```
 
 ---
 
@@ -35,11 +42,56 @@ Run the server locally without Docker (requires Go installed):
 make run
 ```
 
+---
+
+## Development Workflow
+
+### Format code
+
+```bash
+make fmt
+```
+
 ### Run tests
 
 ```bash
 make test
 ```
+
+### Run race detector
+
+```bash
+make race
+```
+
+### Run linter (golangci-lint v2, pinned locally)
+
+```bash
+make lint
+```
+
+### Run vulnerability scan (govulncheck)
+
+```bash
+make vuln
+```
+
+### Run full CI pipeline locally
+
+Runs exactly what CI executes:
+
+```bash
+make ci
+```
+
+Includes:
+
+- go mod tidy
+- gofmt
+- tests
+- race detector
+- linting
+- vulnerability scan
 
 ---
 
@@ -48,15 +100,26 @@ make test
 Quick examples:
 
 ### Health check
+
+```bash
 curl -i http://localhost:8090/healthz
+```
 
 ### FizzBuzz
+
+```bash
 curl "http://localhost:8090/fizzbuzz?int1=3&int2=5&limit=16&str1=fizz&str2=buzz"
+```
 
 ### Statistics
-curl http://localhost:8090/stats
 
-For full API details, see the OpenAPI specification in docs/openapi.yaml.
+```bash
+curl http://localhost:8090/stats
+```
+
+For full API details, see the OpenAPI specification in `docs/openapi.yaml`.
+
+---
 
 ## API Documentation (OpenAPI)
 
@@ -64,7 +127,9 @@ The API contract is formally described using an OpenAPI specification.
 
 Location:
 
+```
 docs/openapi.yaml
+```
 
 You can visualize it using Swagger Editor:
 
@@ -84,14 +149,26 @@ A sample configuration file is provided:
 cp config.example.env .env
 ```
 
+You can customize behavior such as:
+
+- HTTP port
+- Maximum allowed `limit`
+- Maximum string length
+- Rate limiting
+- Redis usage for statistics
+
 ---
 
 ### CORS (optional)
 
-If you want to use Swagger Editor "Try it out" function from the browser, enable CORS:
+If you want to use Swagger Editor "Try it out" functionality from the browser, enable CORS:
 
+```
 CORS_ENABLED=true
 CORS_ALLOWED_ORIGINS=https://editor.swagger.io
+```
+
+---
 
 ## Architecture
 
@@ -102,15 +179,16 @@ cmd/api                 → application entrypoint
 internal/httpapi        → HTTP routing & handlers
 internal/fizzbuzz       → core business logic
 internal/stats          → statistics service
-internal/stats/memory   → statistics repository
+internal/stats/memory   → in-memory statistics repository
+internal/stats/redis    → Redis statistics repository
 internal/config         → configuration loading
 ```
 
 ### Design Principles
 
 - Clear separation between transport and business logic
-- Minimal abstractions (interfaces only at boundaries, see internal/stats/repo.go)
-- Thread-safe in-memory storage
+- Minimal abstractions (interfaces only at boundaries, see `internal/stats/repo.go`)
+- Thread-safe statistics storage
 - Production-ready HTTP server configuration
 - Structured logging using slog
 - Simple and maintainable codebase
@@ -119,15 +197,11 @@ internal/config         → configuration loading
 
 ## Statistics Storage
 
-Statistics are stored in memory for simplicity.
+By default, statistics are stored in memory.
 
 To prevent unbounded memory growth, the in-memory repository limits the number of distinct parameter combinations.
 
-For real production deployments:
-
-- Use Redis with TTL/eviction
-- Add rate limiting
-- Consider persistence and monitoring
+For multi-instance or production deployments, a Redis-backed repository is available and can be enabled via environment configuration.
 
 ---
 
@@ -137,7 +211,9 @@ For real production deployments:
 
 - Graceful shutdown
 - Read/write/idle timeouts
+- Handler-level timeouts
 - Panic recovery middleware
+- Rate limiting per IP
 
 ### Observability
 
@@ -150,6 +226,15 @@ For real production deployments:
 
 - Thread-safe statistics repository
 - No global mutable state
+- Race detector validated
+
+### Code Quality
+
+- golangci-lint v2
+- govulncheck
+- Unit tests
+- Race tests
+- CI parity via `make ci`
 
 ---
 
@@ -157,8 +242,10 @@ For real production deployments:
 
 Possible future enhancements include:
 
-- Redis-backed statistics repository (TTL/eviction)
-- Basic metrics endpoint (Prometheus)
+- Prometheus metrics endpoint
+- Distributed rate limiting
+- Persistent statistics with TTL management
+- Extended API versioning
 
 ---
 

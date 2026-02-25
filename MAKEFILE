@@ -6,7 +6,6 @@ PKG      := ./...
 
 # ---- Tools installation (local, pinned) ----
 GOLANGCI_LINT_VERSION := v2.10.1
-GOSEC_VERSION         := v2.23.0
 GOVULNCHECK_VERSION := v1.1.4
 
 tidy:
