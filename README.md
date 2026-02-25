@@ -99,10 +99,25 @@ Includes:
 
 Quick examples:
 
-### Health check
+### Liveness probe
+
+Indicates that the application process is running.
+Useful for potential use of kubernetes probes
 
 ```bash
 curl -i http://localhost:8090/healthz
+```
+
+### Readiness probe
+
+Indicates that the service is ready to receive traffic.
+
+If Redis is enabled, this endpoint verifies the Redis connection.  
+If Redis is disabled, it always returns success.
+Useful for potential use of kubernetes probes
+
+```bash
+curl -i http://localhost:8090/readyz
 ```
 
 ### FizzBuzz

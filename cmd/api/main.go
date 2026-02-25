@@ -69,10 +69,13 @@ func run(ctx context.Context) error {
 }
 
 func newServer(cfg config.Config, logger *slog.Logger) (*http.Server, error) {
-	var repo stats.Repository
+	var (
+		repo stats.Repository
+		rdb  *goredis.Client
+	)
 
 	if cfg.RedisEnabled {
-		rdb := goredis.NewClient(&goredis.Options{
+		rdb = goredis.NewClient(&goredis.Options{
 			Addr:        cfg.RedisAddr,
 			Password:    cfg.RedisPassword,
 			DB:          cfg.RedisDB,
@@ -97,7 +100,7 @@ func newServer(cfg config.Config, logger *slog.Logger) (*http.Server, error) {
 		return nil, err
 	}
 
-	h := httpapi.NewHandler(cfg, svc)
+	h := httpapi.NewHandler(cfg, rdb, svc)
 	router := httpapi.NewRouter(cfg, logger, h)
 
 	return &http.Server{

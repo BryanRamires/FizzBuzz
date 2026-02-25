@@ -1,15 +1,18 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
 	"unicode"
 
 	"github.com/BryanRamires/FizzBuzz/internal/config"
 	"github.com/BryanRamires/FizzBuzz/internal/fizzbuzz"
 	"github.com/BryanRamires/FizzBuzz/internal/stats"
+	goredis "github.com/redis/go-redis/v9"
 )
 
 type errorResponse struct {
@@ -17,14 +20,16 @@ type errorResponse struct {
 }
 
 type Handler struct {
-	Cfg   config.Config
-	Stats *stats.Service
+	cfg   config.Config
+	rdb   *goredis.Client
+	stats *stats.Service
 }
 
-func NewHandler(cfg config.Config, statsService *stats.Service) Handler {
+func NewHandler(cfg config.Config, rdb *goredis.Client, statsService *stats.Service) Handler {
 	return Handler{
-		Cfg:   cfg,
-		Stats: statsService,
+		cfg:   cfg,
+		rdb:   rdb,
+		stats: statsService,
 	}
 }
 
@@ -46,7 +51,7 @@ func (h Handler) FizzBuzz(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "limit must be a positive integer")
 		return
 	}
-	if limit > h.Cfg.MaxLimit {
+	if limit > h.cfg.MaxLimit {
 		writeError(w, http.StatusBadRequest, "limit is too large")
 		return
 	}
@@ -63,13 +68,13 @@ func (h Handler) FizzBuzz(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(str1) > h.Cfg.MaxStrLen || len(str2) > h.Cfg.MaxStrLen {
+	if len(str1) > h.cfg.MaxStrLen || len(str2) > h.cfg.MaxStrLen {
 		writeError(w, http.StatusBadRequest, "str1 and str2 are too long")
 		return
 	}
 
-	if h.Stats != nil {
-		h.Stats.Record(stats.Key{
+	if h.stats != nil {
+		h.stats.Record(stats.Key{
 			Int1:  int1,
 			Int2:  int2,
 			Limit: limit,
@@ -83,11 +88,11 @@ func (h Handler) FizzBuzz(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Handler) StatsTop(w http.ResponseWriter, r *http.Request) {
-	if h.Stats == nil {
+	if h.stats == nil {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
-	top, ok := h.Stats.MostFrequent()
+	top, ok := h.stats.MostFrequent()
 	if !ok {
 		w.WriteHeader(http.StatusNoContent)
 		return
@@ -95,6 +100,20 @@ func (h Handler) StatsTop(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, top)
 }
 
+func (h *Handler) Readyz(w http.ResponseWriter, r *http.Request) {
+	if h.cfg.RedisEnabled {
+		ctx, cancel := context.WithTimeout(r.Context(), time.Second)
+		defer cancel()
+
+		if err := h.rdb.Ping(ctx).Err(); err != nil {
+			writeError(w, http.StatusServiceUnavailable, "redis not ready")
+			return
+		}
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte("ready"))
+}
 func hasControlChars(s string) bool {
 	for _, r := range s {
 		if unicode.IsControl(r) {

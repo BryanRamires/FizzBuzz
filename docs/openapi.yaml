@@ -2,7 +2,7 @@ openapi: 3.0.3
 
 info:
   title: FizzBuzz API
-  description: Production-ready FizzBuzz REST API with configurable rules and request statistics.
+  description: Production-ready FizzBuzz REST API with configurable rules, health/readiness endpoints, and request statistics.
   version: 1.0.0
 
 servers:
@@ -108,8 +108,8 @@ components:
 paths:
   /healthz:
     get:
-      summary: Health check
-      description: Returns the health status of the service.
+      summary: Health check (liveness)
+      description: Liveness endpoint. Returns 200 if the process is running.
       responses:
         '200':
           description: Service is healthy
@@ -118,6 +118,32 @@ paths:
               schema:
                 type: string
                 example: ok
+
+  /readyz:
+    get:
+      summary: Readiness check
+      description: |
+        Readiness endpoint. Returns 200 when the service is ready to receive traffic.
+        If Redis is enabled, this endpoint verifies the Redis connection.
+        If Redis is disabled, it always returns 200.
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: ready
+        '503':
+          description: Service is not ready (dependency unavailable)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                redisNotReady:
+                  summary: Redis not ready
+                  value: { error: "redis not ready" }
 
   /fizzbuzz:
     get:

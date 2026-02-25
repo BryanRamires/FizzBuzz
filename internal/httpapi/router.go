@@ -38,6 +38,8 @@ func NewRouter(cfg config.Config, logger *slog.Logger, h Handler) http.Handler {
 		}
 	})
 
+	r.Get("/readyz", h.Readyz)
+
 	// In multi-instance production setups, rate limiting is typically enforced at the edge
 	// (API gateway / ingress / WAF). This in-app limiter provides basic protection per instance.
 	r.With(httprate.LimitByIP(cfg.RateLimitFizzBuzz, cfg.RateLimitWindow)).Get("/fizzbuzz", h.FizzBuzz)
