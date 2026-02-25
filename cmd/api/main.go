@@ -14,6 +14,8 @@ import (
 	"github.com/BryanRamires/FizzBuzz/internal/httpapi"
 	"github.com/BryanRamires/FizzBuzz/internal/stats"
 	"github.com/BryanRamires/FizzBuzz/internal/stats/memory"
+	redisrepo "github.com/BryanRamires/FizzBuzz/internal/stats/redis"
+	goredis "github.com/redis/go-redis/v9"
 )
 
 func main() {
@@ -67,7 +69,29 @@ func run(ctx context.Context) error {
 }
 
 func newServer(cfg config.Config, logger *slog.Logger) (*http.Server, error) {
-	repo := memory.New()
+	var repo stats.Repository
+
+	if cfg.RedisEnabled {
+		rdb := goredis.NewClient(&goredis.Options{
+			Addr:        cfg.RedisAddr,
+			Password:    cfg.RedisPassword,
+			DB:          cfg.RedisDB,
+			DialTimeout: cfg.RedisDialTimeout,
+		})
+
+		pingCtx, cancel := context.WithTimeout(context.Background(), cfg.RedisDialTimeout)
+		defer cancel()
+		if err := rdb.Ping(pingCtx).Err(); err != nil {
+			return nil, err
+		}
+
+		repo = redisrepo.NewRepo(cfg, rdb)
+		logger.Info("stats backend", "type", "redis", "addr", cfg.RedisAddr, "db", cfg.RedisDB)
+	} else {
+		repo = memory.New()
+		logger.Info("stats backend", "type", "memory")
+	}
+
 	svc, err := stats.NewService(repo)
 	if err != nil {
 		return nil, err

@@ -25,6 +25,13 @@ type Config struct {
 
 	CORSEnabled        bool
 	CORSAllowedOrigins []string
+
+	RedisEnabled     bool
+	RedisAddr        string
+	RedisPassword    string
+	RedisDB          int
+	RedisDialTimeout time.Duration
+	RedisOpTimeout   time.Duration
 }
 
 func New() (Config, error) {
@@ -47,6 +54,12 @@ func New() (Config, error) {
 		// Do not default to "*" to avoid unintentionally opening the API.
 		// CORS must always be explicitly configured.
 		CORSAllowedOrigins: []string{},
+		RedisEnabled:       false,
+		RedisAddr:          "localhost:6379",
+		RedisPassword:      "",
+		RedisDB:            0,
+		RedisDialTimeout:   2 * time.Second,
+		RedisOpTimeout:     1 * time.Second,
 	}
 
 	var err error
@@ -143,6 +156,36 @@ func New() (Config, error) {
 	}
 	if cfg.CORSEnabled && len(cfg.CORSAllowedOrigins) == 0 {
 		return Config{}, fmt.Errorf("CORS_ALLOWED_ORIGINS must be set when CORS_ENABLED=true")
+	}
+	if cfg.RedisEnabled, err = getenvBool("REDIS_ENABLED", cfg.RedisEnabled); err != nil {
+		return Config{}, fmt.Errorf("REDIS_ENABLED: %w", err)
+	}
+
+	cfg.RedisAddr = getenv("REDIS_ADDR", cfg.RedisAddr)
+	cfg.RedisPassword = getenv("REDIS_PASSWORD", cfg.RedisPassword)
+
+	if cfg.RedisDB, err = getenvInt("REDIS_DB", cfg.RedisDB); err != nil {
+		return Config{}, fmt.Errorf("REDIS_DB: %w", err)
+	}
+	if cfg.RedisDB < 0 {
+		return Config{}, fmt.Errorf("REDIS_DB must be >= 0")
+	}
+
+	if cfg.RedisDialTimeout, err = getenvDuration("REDIS_DIAL_TIMEOUT", cfg.RedisDialTimeout); err != nil {
+		return Config{}, fmt.Errorf("REDIS_DIAL_TIMEOUT: %w", err)
+	}
+	if cfg.RedisDialTimeout <= 0 {
+		return Config{}, fmt.Errorf("REDIS_DIAL_TIMEOUT must be > 0")
+	}
+
+	if cfg.RedisEnabled && strings.TrimSpace(cfg.RedisAddr) == "" {
+		return Config{}, fmt.Errorf("REDIS_ADDR must not be empty when REDIS_ENABLED=true")
+	}
+	if cfg.RedisOpTimeout, err = getenvDuration("REDIS_OP_TIMEOUT", cfg.RedisOpTimeout); err != nil {
+		return Config{}, fmt.Errorf("REDIS_OP_TIMEOUT: %w", err)
+	}
+	if cfg.RedisOpTimeout <= 0 {
+		return Config{}, fmt.Errorf("REDIS_OP_TIMEOUT must be > 0")
 	}
 
 	return cfg, nil
