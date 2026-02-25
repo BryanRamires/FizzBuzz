@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"encoding/json"
 	"sync"
 
 	"github.com/BryanRamires/FizzBuzz/internal/stats"
@@ -41,14 +42,34 @@ func (r *Repo) Top() (stats.Top, bool) {
 		bestK   stats.Key
 		bestV   uint64
 		hasBest bool
+		bestMem string
 	)
+
 	for k, v := range r.m {
 		if !hasBest || v > bestV {
 			bestK, bestV, hasBest = k, v, true
+			bestMem = keyMember(k)
+			continue
+		}
+		// Match Redis ZREVRANGE tie-breaking to unify back-end:
+		// pick the lexicographically highest member.
+		if v == bestV {
+			mem := keyMember(k)
+			if mem > bestMem {
+				bestK = k
+				bestMem = mem
+			}
 		}
 	}
+
 	if !hasBest {
 		return stats.Top{}, false
 	}
 	return stats.Top{Parameters: bestK, Hits: bestV}, true
+}
+
+func keyMember(k stats.Key) string {
+	// Top() is a cold path, so the allocation cost is acceptable.
+	b, _ := json.Marshal(k)
+	return string(b)
 }
