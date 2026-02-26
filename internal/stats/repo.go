@@ -1,6 +1,8 @@
 package stats
 
+import "context"
+
 type Repository interface {
-	Inc(Key)
-	Top() (Top, bool)
+	Inc(context.Context, Key) error
+	Top(context.Context) (Top, bool, error)
 }

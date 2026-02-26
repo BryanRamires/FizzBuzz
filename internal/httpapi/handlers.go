@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
@@ -21,20 +22,23 @@ type errorResponse struct {
 }
 
 type Handler struct {
-	cfg   config.Config
-	rdb   *goredis.Client
-	stats *stats.Service
+	cfg    config.Config
+	logger *slog.Logger
+	rdb    *goredis.Client
+	stats  *stats.Service
 }
 
-func NewHandler(cfg config.Config, rdb *goredis.Client, statsService *stats.Service) Handler {
+func NewHandler(cfg config.Config, logger *slog.Logger, rdb *goredis.Client, statsService *stats.Service) Handler {
 	return Handler{
-		cfg:   cfg,
-		rdb:   rdb,
-		stats: statsService,
+		cfg:    cfg,
+		logger: logger,
+		rdb:    rdb,
+		stats:  statsService,
 	}
 }
 
 func (h Handler) FizzBuzz(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	q := r.URL.Query()
 
 	int1, err := mustPositiveInt(q.Get("int1"))
@@ -75,13 +79,25 @@ func (h Handler) FizzBuzz(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if h.stats != nil {
-		h.stats.Record(stats.Key{
+		err := h.stats.Record(ctx, stats.Key{
 			Int1:  int1,
 			Int2:  int2,
 			Limit: limit,
 			Str1:  str1,
 			Str2:  str2,
 		})
+		if err != nil {
+			h.logger.WarnContext(ctx, "failed to record stats",
+				"err", err,
+				"int1", int1,
+				"int2", int2,
+				"limit", limit,
+				"str1", str1,
+				"str2", str2,
+				"str1_len", len(str1),
+				"str2_len", len(str2),
+			)
+		}
 	}
 
 	out := fizzbuzz.Generate(int1, int2, limit, str1, str2)
@@ -89,11 +105,17 @@ func (h Handler) FizzBuzz(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Handler) StatsTop(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	if h.stats == nil {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
-	top, ok := h.stats.MostFrequent()
+	top, ok, err := h.stats.MostFrequent(ctx)
+	if err != nil {
+		h.logger.ErrorContext(ctx, "failed to fetch stats top", "err", err)
+		writeError(w, http.StatusServiceUnavailable, "stats backend unavailable")
+		return
+	}
 	if !ok {
 		w.WriteHeader(http.StatusNoContent)
 		return

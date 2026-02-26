@@ -108,7 +108,7 @@ func newServer(cfg config.Config, logger *slog.Logger) (*http.Server, error) {
 		return nil, err
 	}
 
-	h := httpapi.NewHandler(cfg, rdb, svc)
+	h := httpapi.NewHandler(cfg, logger, rdb, svc)
 	router := httpapi.NewRouter(cfg, logger, h)
 
 	return &http.Server{

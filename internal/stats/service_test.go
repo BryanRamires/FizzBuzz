@@ -1,6 +1,9 @@
 package stats
 
-import "testing"
+import (
+	"context"
+	"testing"
+)
 
 // petit fake repo in-memory pour tester le service
 type fakeRepo struct {
@@ -9,9 +12,12 @@ type fakeRepo struct {
 
 func newFakeRepo() *fakeRepo { return &fakeRepo{m: map[Key]uint64{}} }
 
-func (f *fakeRepo) Inc(k Key) { f.m[k]++ }
+func (f *fakeRepo) Inc(ctx context.Context, k Key) error {
+	f.m[k]++
+	return nil
+}
 
-func (f *fakeRepo) Top() (Top, bool) {
+func (f *fakeRepo) Top(ctx context.Context) (Top, bool, error) {
 	var (
 		bestK   Key
 		bestV   uint64
@@ -23,21 +29,22 @@ func (f *fakeRepo) Top() (Top, bool) {
 		}
 	}
 	if !hasBest {
-		return Top{}, false
+		return Top{}, false, nil
 	}
-	return Top{Parameters: bestK, Hits: bestV}, true
+	return Top{Parameters: bestK, Hits: bestV}, true, nil
 }
 
 func TestService_RecordAndMostFrequent(t *testing.T) {
+	ctx := context.Background()
 	repo := newFakeRepo()
 	svc, _ := NewService(repo)
 
 	k := Key{Int1: 3, Int2: 5, Limit: 16, Str1: "fizz", Str2: "buzz"}
 
-	svc.Record(k)
-	svc.Record(k)
+	svc.Record(ctx, k)
+	svc.Record(ctx, k)
 
-	top, ok := svc.MostFrequent()
+	top, ok, _ := svc.MostFrequent(ctx)
 	if !ok {
 		t.Fatal("expected ok")
 	}

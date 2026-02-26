@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"context"
 	"encoding/json"
 	"sync"
 
@@ -23,18 +24,19 @@ func New() *Repo {
 	return &Repo{m: make(map[stats.Key]uint64), maxKeys: defaultMaxKeys}
 }
 
-func (r *Repo) Inc(k stats.Key) {
+func (r *Repo) Inc(ctx context.Context, k stats.Key) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	if _, ok := r.m[k]; !ok && r.maxKeys > 0 && len(r.m) >= r.maxKeys {
-		return // best-effort: ignore new keys when full
+		return nil // best-effort: ignore new keys when full
 	}
 	r.m[k]++
+	return nil
 }
 
 // Linear scan is acceptable: map size is bounded and this is a cold path.
-func (r *Repo) Top() (stats.Top, bool) {
+func (r *Repo) Top(ctx context.Context) (stats.Top, bool, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -63,9 +65,9 @@ func (r *Repo) Top() (stats.Top, bool) {
 	}
 
 	if !hasBest {
-		return stats.Top{}, false
+		return stats.Top{}, false, nil
 	}
-	return stats.Top{Parameters: bestK, Hits: bestV}, true
+	return stats.Top{Parameters: bestK, Hits: bestV}, true, nil
 }
 
 func keyMember(k stats.Key) string {

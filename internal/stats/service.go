@@ -1,6 +1,9 @@
 package stats
 
-import "errors"
+import (
+	"context"
+	"errors"
+)
 
 // Service holds stats business rules and abstracts the storage backend.
 type Service struct {
@@ -14,10 +17,10 @@ func NewService(repo Repository) (*Service, error) {
 	return &Service{repo: repo}, nil
 }
 
-func (s *Service) Record(k Key) {
-	s.repo.Inc(k)
+func (s *Service) Record(ctx context.Context, k Key) error {
+	return s.repo.Inc(ctx, k)
 }
 
-func (s *Service) MostFrequent() (Top, bool) {
-	return s.repo.Top()
+func (s *Service) MostFrequent(ctx context.Context) (Top, bool, error) {
+	return s.repo.Top(ctx)
 }

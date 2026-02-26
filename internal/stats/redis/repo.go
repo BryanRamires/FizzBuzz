@@ -3,6 +3,7 @@ package redis
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"math"
 	"time"
 
@@ -37,37 +38,41 @@ func memberForKey(k stats.Key) (string, error) {
 	return string(b), nil
 }
 
-func (r *Repo) Inc(k stats.Key) {
-	ctx, cancel := context.WithTimeout(context.Background(), r.opTO)
+func (r *Repo) Inc(ctx context.Context, k stats.Key) error {
+	ctx, cancel := context.WithTimeout(ctx, r.opTO)
 	defer cancel()
 
 	member, err := memberForKey(k)
 	if err != nil {
-		return
+		return err
 	}
 
-	_ = r.rdb.ZIncrBy(ctx, r.rankKey, 1, member).Err()
+	return r.rdb.ZIncrBy(ctx, r.rankKey, 1, member).Err()
 }
 
-func (r *Repo) Top() (stats.Top, bool) {
+func (r *Repo) Top(ctx context.Context) (stats.Top, bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), r.opTO)
 	defer cancel()
 
 	items, err := r.rdb.ZRevRangeWithScores(ctx, r.rankKey, 0, 0).Result()
 	if err != nil || len(items) == 0 {
-		return stats.Top{}, false
+		return stats.Top{}, false, err
+	}
+
+	if len(items) == 0 {
+		return stats.Top{}, false, nil
 	}
 
 	memberStr, ok := items[0].Member.(string)
 	if !ok {
-		return stats.Top{}, false
+		return stats.Top{}, false, fmt.Errorf("invalid redis member type")
 	}
 
 	var params stats.Key
 	if err := json.Unmarshal([]byte(memberStr), &params); err != nil {
-		return stats.Top{}, false
+		return stats.Top{}, false, err
 	}
 
 	hits := uint64(math.Round(items[0].Score))
-	return stats.Top{Parameters: params, Hits: hits}, true
+	return stats.Top{Parameters: params, Hits: hits}, true, nil
 }
