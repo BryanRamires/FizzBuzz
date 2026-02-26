@@ -37,18 +37,20 @@ components:
         limit:
           type: integer
           minimum: 1
+          maximum: MAX_LIMIT
+          description: Must be <= MaxLimit (service configuration).
         str1:
           type: string
           minLength: 1
           maxLength: 50
-          description: Must not contain control characters.
-          pattern: '^[^\u0000-\u001F\u007F]+$'
+          description: Must be non-empty, must not contain control characters, and length must be <= MaxStrLen (service configuration).
+          pattern: '^[^\u0000-\u001F\u007F-\u009F]+$'
         str2:
           type: string
           minLength: 1
           maxLength: 50
-          description: Must not contain control characters.
-          pattern: '^[^\u0000-\u001F\u007F]+$'
+          description: Must be non-empty, must not contain control characters, and length must be <= MaxStrLen (service configuration).
+          pattern: '^[^\u0000-\u001F\u007F-\u009F]+$'
       required: [int1, int2, limit, str1, str2]
       example:
         int1: 3
@@ -156,21 +158,25 @@ paths:
           schema:
             type: integer
             minimum: 1
-          description: First divisor
+          description: First divisor (must be a positive integer).
+
         - name: int2
           in: query
           required: true
           schema:
             type: integer
             minimum: 1
-          description: Second divisor
+          description: Second divisor (must be a positive integer).
+
         - name: limit
           in: query
           required: true
           schema:
             type: integer
             minimum: 1
-          description: Upper bound of the sequence
+            maximum: 50
+          description: Upper bound of the sequence (must be <= MaxLimit).
+
         - name: str1
           in: query
           required: true
@@ -178,8 +184,9 @@ paths:
             type: string
             minLength: 1
             maxLength: 50
-            pattern: '^[^\u0000-\u001F\u007F]+$'
-          description: Replacement for multiples of int1 (no control characters).
+            pattern: '^[^\u0000-\u001F\u007F-\u009F]+$'
+          description: Replacement for multiples of int1 (non-empty, no control chars, <= MaxStrLen).
+
         - name: str2
           in: query
           required: true
@@ -187,8 +194,8 @@ paths:
             type: string
             minLength: 1
             maxLength: 50
-            pattern: '^[^\u0000-\u001F\u007F]+$'
-          description: Replacement for multiples of int2 (no control characters).
+            pattern: '^[^\u0000-\u001F\u007F-\u009F]+$'
+          description: Replacement for multiples of int2 (non-empty, no control chars, <= MaxStrLen).
 
       responses:
         '200':
