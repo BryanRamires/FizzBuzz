@@ -25,6 +25,7 @@ func NewRouter(cfg config.Config, logger *slog.Logger, h Handler) http.Handler {
 		}))
 	}
 
+	r.Use(securityHeaders)
 	r.Use(middleware.RequestID)
 	// RealIP assumes requests come through a trusted proxy that sets X-Forwarded-For / X-Real-IP.
 	r.Use(middleware.RealIP)

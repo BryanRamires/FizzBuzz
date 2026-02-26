@@ -1,6 +1,8 @@
 package fizzbuzz
 
-import "testing"
+import (
+	"testing"
+)
 
 // Generate assumes validated inputs.
 // Parameter validation is performed at the API layer to keep this function focused on pure business logic.

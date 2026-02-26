@@ -14,9 +14,9 @@ func TestRepoTop(t *testing.T) {
 	k1 := stats.Key{Int1: 3, Int2: 5, Limit: 10, Str1: "fizz", Str2: "buzz"}
 	k2 := stats.Key{Int1: 2, Int2: 7, Limit: 10, Str1: "a", Str2: "b"}
 
-	r.Inc(ctx, k1)
-	r.Inc(ctx, k1)
-	r.Inc(ctx, k2)
+	_ = r.Inc(ctx, k1)
+	_ = r.Inc(ctx, k1)
+	_ = r.Inc(ctx, k2)
 
 	top, ok, _ := r.Top(ctx)
 	if !ok {

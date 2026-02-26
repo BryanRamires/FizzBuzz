@@ -41,8 +41,8 @@ func TestService_RecordAndMostFrequent(t *testing.T) {
 
 	k := Key{Int1: 3, Int2: 5, Limit: 16, Str1: "fizz", Str2: "buzz"}
 
-	svc.Record(ctx, k)
-	svc.Record(ctx, k)
+	_ = svc.Record(ctx, k)
+	_ = svc.Record(ctx, k)
 
 	top, ok, _ := svc.MostFrequent(ctx)
 	if !ok {

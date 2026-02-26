@@ -51,16 +51,12 @@ func (r *Repo) Inc(ctx context.Context, k stats.Key) error {
 }
 
 func (r *Repo) Top(ctx context.Context) (stats.Top, bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), r.opTO)
+	ctx, cancel := context.WithTimeout(ctx, r.opTO)
 	defer cancel()
 
 	items, err := r.rdb.ZRevRangeWithScores(ctx, r.rankKey, 0, 0).Result()
 	if err != nil || len(items) == 0 {
 		return stats.Top{}, false, err
-	}
-
-	if len(items) == 0 {
-		return stats.Top{}, false, nil
 	}
 
 	memberStr, ok := items[0].Member.(string)
