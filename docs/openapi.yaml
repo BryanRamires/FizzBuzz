@@ -2,7 +2,7 @@ openapi: 3.0.3
 
 info:
   title: FizzBuzz API
-  description: Production-ready FizzBuzz REST API with configurable rules, health/readiness endpoints, and request statistics.
+  description: Production-oriented FizzBuzz REST API with configurable rules, health/readiness endpoints, and request statistics.
   version: 1.0.0
 
 servers:

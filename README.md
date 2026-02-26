@@ -1,8 +1,8 @@
 # FizzBuzz REST API (Go)
 
-Production-ready FizzBuzz REST API implemented in Go, featuring a clean and minimalist architecture, configurable rules, structured logging, and request statistics tracking.
+Production-oriented FizzBuzz REST API implemented in Go, featuring a clean and minimalist architecture, configurable rules, structured logging, and request statistics tracking.
 
-This project demonstrates idiomatic Go practices, production-grade HTTP handling, and maintainable software design.
+This project implements the Leboncoin backend FizzBuzz exercise and demonstrates idiomatic Go practices, production-grade HTTP handling patterns, and maintainable software design.
 
 ---
 
@@ -204,7 +204,7 @@ internal/config         → configuration loading
 - Clear separation between transport and business logic
 - Minimal abstractions (interfaces only at boundaries, see `internal/stats/repo.go`)
 - Thread-safe statistics storage
-- Production-ready HTTP server configuration
+- Production-oriented HTTP server configuration
 - Structured logging using slog
 - Simple and maintainable codebase
 
@@ -216,11 +216,26 @@ By default, statistics are stored in memory.
 
 To prevent unbounded memory growth, the in-memory repository limits the number of distinct parameter combinations.
 
-For multi-instance or production deployments, a Redis-backed repository is available and can be enabled via environment configuration.
+For multi-instance or production deployments, a Redis-backed repository is available and can be enabled via environment configuration by setting `REDIS_ENABLED=true`.
+
+Before restarting Docker, ensure your environment configuration file is initialized:
+
+```bash
+cp config.example.env .env
+```
+
+When configured correctly, the application logs will display `"type":"redis"` instead of `"type":"memory"`.
 
 ---
 
-## Production-Ready Features
+## Technical Choices
+
+- chi: lightweight and idiomatic router
+- slog: standard structured logging
+- Redis: scalable statistics backend
+- No framework: minimal dependencies
+
+## Production-Oriented Features
 
 ### HTTP Hardening
 
